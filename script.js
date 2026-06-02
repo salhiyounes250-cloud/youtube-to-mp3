@@ -1,14 +1,18 @@
-// التحقق من دعم PWA
+// ========================================================
+// 1. إعدادات الـ PWA والـ Service Worker
+// ========================================================
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(err => {
         console.log('Service Worker registration failed:', err);
     });
 }
 
-// إدارة اللغات
+// إدارة اللغات الافتراضية
 let currentLanguage = localStorage.getItem('language') || 'ar';
 
-// المتغيرات الأساسية واختيار العناصر من الـ DOM
+// ========================================================
+// 2. جلب عناصر واجهة المستخدم (DOM Elements)
+// ========================================================
 const urlInput = document.getElementById('urlInput');
 const downloadBtn = document.getElementById('downloadBtn');
 const pasteBtn = document.getElementById('pasteBtn');
@@ -16,26 +20,26 @@ const installBtn = document.getElementById('installBtn');
 const upgradeBtn = document.getElementById('upgradeBtn');
 const paymentModal = document.getElementById('paymentModal');
 const closeModal = document.getElementById('closeModal');
-const stripePayBtn = document.getElementById('stripePayBtn');
-const paypalPayBtn = document.getElementById('paypalPayBtn');
-const premiumBadge = document.getElementById('premiumBadge');
 const speedStatus = document.getElementById('speedStatus');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const successMessage = document.getElementById('successMessage');
+const premiumBadge = document.getElementById('premiumBadge');
 
 let deferredPrompt;
 let isPremium = localStorage.getItem('isPremium') === 'true';
 
-// تحديث حالة الاشتراك عند تحميل الصفحة
+// تحديث الواجهة بناءً على حالة الاشتراك الحالية
 updatePremiumStatus();
 
-// إضافة مستمعي الأحداث (Event Listeners)
+// ========================================================
+// 3. ربط الأحداث (Event Listeners)
+// ========================================================
 if (downloadBtn) downloadBtn.addEventListener('click', handleDownload);
 if (pasteBtn) pasteBtn.addEventListener('click', pasteFromClipboard);
 if (upgradeBtn) upgradeBtn.addEventListener('click', openPaymentModal);
 if (closeModal) closeModal.addEventListener('click', closePaymentModal);
 
-// إعادة تهيئة زر الدفع عبر البريد الإلكتروني لمنع التكرار
+// إعادة تهيئة زر الدفع عبر البريد الإلكتروني لمنع تكرار المستمعين
 const emailPayBtn = document.getElementById('emailPayBtn');
 if (emailPayBtn) {
     const newBtn = emailPayBtn.cloneNode(true);
@@ -43,7 +47,7 @@ if (emailPayBtn) {
     document.getElementById('emailPayBtn').addEventListener('click', () => initiatePayment('email'));
 }
 
-// تثبيت تطبيق الـ PWA
+// الاندماج مع موجه تثبيت تطبيق الـ PWA
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -55,14 +59,14 @@ if (installBtn) {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response: ${outcome}`);
+            console.log(`User installation choice: ${outcome}`);
             deferredPrompt = null;
             installBtn.classList.add('hidden');
         }
     });
 }
 
-// دالة لصق الرابط من الحافظة (Clipboard)
+// دالة لصق الرابط من الحافظة
 async function pasteFromClipboard() {
     try {
         const text = await navigator.clipboard.readText();
@@ -75,42 +79,42 @@ async function pasteFromClipboard() {
     }
 }
 
-// التحقق من صحة رابط اليوتيوب باستخدام Regex
+// التحقق من صحة روابط اليوتيوب
 function isValidYoutubeUrl(url) {
     const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//;
     return youtubeRegex.test(url);
 }
 
-// معالجة التحميل الحقيقي والآمن والكامل
+// ========================================================
+// 4. وظائف التحميل الحقيقية وإدارة السيرفر
+// ========================================================
 async function handleDownload() {
     if (!urlInput) return;
     const url = urlInput.value.trim();
 
     if (!url) {
-        const msg = currentLanguage === 'ar' ? 'الرجاء إدخال رابط فيديو' : 'Please enter a video link';
-        showError(msg);
+        showError(currentLanguage === 'ar' ? 'الرجاء إدخال رابط فيديو' : 'Please enter a video link');
         return;
     }
 
     if (!isValidYoutubeUrl(url)) {
-        const msg = currentLanguage === 'ar' ? 'الرجاء إدخال رابط يوتيوب صحيح' : 'Please enter a valid YouTube URL';
-        showError(msg);
+        showError(currentLanguage === 'ar' ? 'الرجاء إدخال رابط يوتيوب صحيح' : 'Please enter a valid YouTube URL');
         return;
     }
 
     const formatRadio = document.querySelector('input[name="format"]:checked');
     const format = formatRadio ? formatRadio.value : 'mp3';
 
-    // عرض مؤشر التحميل والعداد التنازلي للمستخدم
+    // إظهار العداد التنازلي والمؤشر
     showLoadingSpinner(format);
 
     try {
-        // محاكاة تأخير الـ 10 ثواني لأصحاب الخطة المجانية فقط
+        // تطبيق فتره الانتظار للمستخدم المجاني فقط
         if (!isPremium) {
             await simulateDelay(10);
         }
 
-        // إرسال الطلب إلى السيرفر الخلفي في Render
+        // إرسال طلب المعالجة الفعلي لخادم Render الخلفي
         const response = await fetch('/api/download', {
             method: 'POST',
             headers: {
@@ -124,16 +128,16 @@ async function handleDownload() {
         });
 
         if (!response.ok) {
-            throw new Error('Server response error');
+            throw new Error('Server returned an error');
         }
 
         const data = await response.json();
         
         if (data.success && data.downloadLink) {
-            // تحميل حقيقي ونظيف وآمن للملف الصوتي أو الفيديو ببياناته الكاملة
+            // تنفيذ عملية تنزيل حقيقية ونظيفة للملف الصوتي الحقيقي
             const link = document.createElement('a');
             link.href = data.downloadLink;
-            link.setAttribute('download', data.title ? `${data.title}.${format}` : `Download_${Date.now()}.${format}`);
+            link.setAttribute('download', data.title ? `${data.title}.${format}` : `Audio_${Date.now()}.${format}`);
             link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
@@ -146,18 +150,20 @@ async function handleDownload() {
         }
 
     } catch (error) {
-        console.error('Download Fail:', error);
+        console.error('Download process failed:', error);
         hideLoadingSpinner();
         
-        // رسالة تنبيهية ذكية بدلاً من توليد ملفات فارغة
+        // إشعار ذكي بدلاً من تسليم ملفات فارغة معطوبة
         const alertMsg = currentLanguage === 'ar' 
-            ? 'تنبيه: خادم الاستضافة المجاني يستيقظ الآن (يستغرق ذلك حوالي 30 ثانية). يرجى النقر على زر التحميل مرة أخرى لتنزيل ملفك كاملاً.' 
+            ? 'تنبيه: خادم الاستضافة المجاني يستيقظ الآن (يستغرق ذلك حوالي 30 ثانية). يرجى النقر على زر التحميل مرة أخرى لتنزيل ملفك كاملاً وبجودة عالية.' 
             : 'Notice: The free server instance is currently waking up (takes up to 30s). Please click download again to fetch your full file.';
         alert(alertMsg);
     }
 }
 
-// عرض مؤشر التحميل مع عداد تنازلي ذكي للمستخدم المجاني
+// ========================================================
+// 5. إدارة تأثيرات واجهة المستخدم (UI Animations)
+// ========================================================
 function showLoadingSpinner(format) {
     if (!loadingSpinner) return;
     loadingSpinner.style.display = 'block';
@@ -187,12 +193,10 @@ function showLoadingSpinner(format) {
     }
 }
 
-// إخفاء مؤشر التحميل
 function hideLoadingSpinner() {
     if (loadingSpinner) loadingSpinner.style.display = 'none';
 }
 
-// عرض رسالة النجاح المنبثقة وتنظيف الإدخال
 function showSuccessMessage(format) {
     hideLoadingSpinner();
     if (!successMessage) return;
@@ -215,29 +219,18 @@ function showSuccessMessage(format) {
     }, 4000);
 }
 
-// دالة عرض رسائل الخطأ المترجمة
 function showError(message) {
     hideLoadingSpinner();
-    const errors = {
-        'ar': { 'empty': 'الرجاء إدخال رابط فيديو', 'invalid': 'الرجاء إدخال رابط يوتيوب صحيح' },
-        'en': { 'empty': 'Please enter a video link', 'invalid': 'Please enter a valid YouTube URL' }
-    };
-    
-    let translatedMessage = message;
-    if (message === 'الرجاء إدخال رابط فيديو' || message === 'Please enter a video link') {
-        translatedMessage = errors[currentLanguage].empty;
-    } else if (message === 'الرجاء إدخال رابط يوتيوب صحيح' || message === 'Please enter a valid YouTube URL') {
-        translatedMessage = errors[currentLanguage].invalid;
-    }
-    alert(translatedMessage);
+    alert(message);
 }
 
-// دالة تأخير الوقت (Promise-based)
 function simulateDelay(seconds) {
     return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
-// تحديث حالة العرض البصري للخطة المفعلة (مجاني / متقدم)
+// ========================================================
+// 6. نظام الفوترة والنسخة المتقدمة (Premium System)
+// ========================================================
 function updatePremiumStatus() {
     const badge = document.querySelector('.badge-text');
     const speedText = document.querySelector('#speedStatus strong');
@@ -255,7 +248,6 @@ function updatePremiumStatus() {
     }
 }
 
-// وظائف التحكم في نافذة الدفع المنبثقة (Modal)
 function openPaymentModal() { if (paymentModal) paymentModal.classList.add('show'); }
 function closePaymentModal() { if (paymentModal) paymentModal.classList.remove('show'); }
 
@@ -271,14 +263,12 @@ function initiatePayment(provider) {
     }
 }
 
-// بدء عملية الدفع وإرسال الإيميل للسيرفر
 async function initiateEmailPayment() {
     const emailInput = document.getElementById('userEmailInput');
     const userEmail = emailInput ? emailInput.value.trim() : '';
 
     if (!userEmail || !userEmail.includes('@')) {
-        const errorMsg = currentLanguage === 'ar' ? 'الرجاء إدخال بريد إلكتروني صحيح!' : 'Please enter a valid email address!';
-        alert(errorMsg);
+        alert(currentLanguage === 'ar' ? 'الرجاء إدخال بريد إلكتروني صحيح!' : 'Please enter a valid email address!');
         return;
     }
 
@@ -310,30 +300,7 @@ async function initiateEmailPayment() {
     }
 }
 
-// التعامل مع نجاح عملية الدفع الفعلية وتخزينها محلياً
-function handlePaymentSuccess(provider) {
-    localStorage.setItem('isPremium', 'true');
-    localStorage.setItem('premiumExpiry', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
-    localStorage.setItem('paymentProvider', provider);
-    
-    isPremium = true;
-    updatePremiumStatus();
-    showSuccessMessage('premium');
-    
-    if (navigator.onLine) {
-        const userEmail = localStorage.getItem('userEmail') || 'unknown@example.com';
-        fetch('/api/payment-success', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: provider, timestamp: new Date().toISOString(), userEmail: userEmail })
-        })
-        .then(res => res.json())
-        .then(data => console.log('✅ Payment notification sent:', data))
-        .catch(err => console.log('Failed to notify server:', err));
-    }
-}
-
-// التحقق من صلاحية الاشتراك السنوي بشكل دوري تلقائي
+// التحقق التلقائي من انتهاء صلاحية الاشتراك السنوي للمتقدم
 function checkPremiumExpiry() {
     const expiry = localStorage.getItem('premiumExpiry');
     if (expiry && new Date(expiry) < new Date()) {
@@ -344,29 +311,15 @@ function checkPremiumExpiry() {
 }
 setInterval(checkPremiumExpiry, 60 * 60 * 1000);
 
-// دعم اختصار لوحة المفاتيح المتقدم للصق الروابط (Ctrl + V)
+// ========================================================
+// 7. اختصارات لوحة المفاتيح واللغات (Multi-language Support)
+// ========================================================
 document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'v' && document.activeElement !== urlInput) {
         pasteFromClipboard();
     }
 });
 
-// التعامل مع مشاركة الملفات من خارج التطبيق في الهواتف الذكية
-if ('launchQueue' in window) {
-    window.launchQueue.setConsumer((launchParams) => {
-        if (launchParams.files && launchParams.files.length > 0) {
-            console.log('File shared:', launchParams.files[0].name);
-        }
-    });
-}
-
-if (successMessage) {
-    successMessage.addEventListener('animationend', () => {
-        successMessage.style.display = 'none';
-    });
-}
-
-// ===== تفعيل نظام تبديل اللغات الذكي والترجمات الفورية =====
 window.addEventListener('DOMContentLoaded', () => {
     applyLanguage(currentLanguage);
     updateLanguageButton();
@@ -426,10 +379,8 @@ function updateLanguageButton() {
     if (langToggleBtn && langText) {
         if (currentLanguage === 'ar') {
             langText.textContent = '🌐 English';
-            langToggleBtn.title = 'Switch to English / التبديل إلى الإنجليزية';
         } else {
             langText.textContent = '🌐 العربية';
-            langToggleBtn.title = 'Switch to Arabic / التبديل إلى العربية';
         }
     }
 }
