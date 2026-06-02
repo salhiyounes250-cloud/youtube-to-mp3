@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import Stripe from 'stripe';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import config from './config.js';
+import * as config from './config.js';
 
 // Load environment variables
 dotenv.config();
