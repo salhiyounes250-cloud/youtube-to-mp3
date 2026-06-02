@@ -30,7 +30,9 @@ app.use(express.static(__dirname));
 
 // Store for payments (في تطبيق حقيقي، استخدم قاعدة بيانات)
 const payments = new Map();
-const ADMIN_EMAIL = config.admin.paymentReceiver;
+
+// 🛠️ تعديل آمن وحل مشكلة الانهيار: الاستعانة ببريدك كخيار افتراضي في حال لم يقرأ من ملف config
+const ADMIN_EMAIL = config?.admin?.paymentReceiver || 'salhiyounes250@gmail.com';
 
 // دالة مساعدة لاستخراج الـ ID الخاص بفيديو يوتيوب من الرابط
 function getYouTubeId(url) {
@@ -40,6 +42,38 @@ function getYouTubeId(url) {
 }
 
 // ===== API Routes =====
+
+// 🌟 مسار استقبال طلبات الدفع عبر الإيميل يدوياً وطباعتها في الـ Logs بدون مشاكل
+app.post('/api/request-payment-email', (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || !email.includes('@')) {
+            return res.status(400).json({
+                success: false,
+                message: 'الرجاء إدخال بريد إلكتروني صحيح وصالح'
+            });
+        }
+
+        console.log(`\n📬 [طلب دفع يدوي جديد عبر الإيميل]`);
+        console.log(`👤 بريد المستخدم: ${email}`);
+        console.log(`💰 الإيميل المستلم (الأدمن): ${ADMIN_EMAIL}`);
+        console.log(`⏱️ وقت الطلب: ${new Date().toLocaleString()}`);
+        console.log(`-----------------------------------------\n`);
+
+        res.json({
+            success: true,
+            message: 'تم إرسال طلبك بنجاح! سيتم التواصل معك عبر البريد لإرسال تفاصيل الدفع.'
+        });
+
+    } catch (error) {
+        console.error('Payment request error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مرة أخرى.'
+        });
+    }
+});
 
 // 1. Download endpoint (التحميل الحقيقي والمستقر باستخدام الـ API الخارجي)
 app.post('/api/download', async (req, res) => {
@@ -430,10 +464,9 @@ app.get('*', (req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-    console.log(`\n✅ 🚀 Server running at ${config.server.domain}`);
+    const domainName = config?.server?.domain || `http://localhost:${PORT}`;
+    console.log(`\n✅ 🚀 Server running at ${domainName}`);
     console.log(`📧 Payment Email: ${ADMIN_EMAIL}`);
-    console.log(`💰 Payment Amount: $${config.payment.amount}/${config.payment.frequency}`);
-    console.log(`⏱️  Environment: ${config.server.environment}\n`);
     
     if (process.env.STRIPE_SECRET_KEY) {
         console.log('✓ Stripe integration enabled');
