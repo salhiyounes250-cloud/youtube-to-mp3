@@ -50,4 +50,5 @@ const config = {
     }
 };
 
-module.exports = config;
+// التعديل الحديث والمصلح ليتوافق مع نظام ES Modules:
+export default config;
