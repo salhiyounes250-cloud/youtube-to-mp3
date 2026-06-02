@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار YouTube to MP3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+        }
+
+        h1 {
+            color: #6366f1;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-right: 4px solid #6366f1;
+        }
+
+        .test-section h2 {
+            color: #6366f1;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .test-output {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #e2e8f0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .success {
+            color: #10b981;
+            background: #ecfdf5;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        .error {
+            color: #ef4444;
+            background: #fee2e2;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        .info {
+            color: #3b82f6;
+            background: #eff6ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+
+        input {
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .test-section h2 {
+                font-size: 16px;
+            }
+
+            .test-controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار YouTube to MP3</h1>
+
+        <!-- Server Health -->
+        <div class="test-section">
+            <h2>📡 حالة الخادم</h2>
+            <div class="test-controls">
+                <button onclick="checkServerHealth()">فحص الخادم</button>
+                <button onclick="checkOnlineStatus()">فحص الاتصال</button>
+            </div>
+            <div class="test-output" id="healthOutput"></div>
+        </div>
+
+        <!-- Download Testing -->
+        <div class="test-section">
+            <h2>📥 اختبار التحميل</h2>
+            <input type="text" id="testUrl" placeholder="أدخل رابط يوتيوب للاختبار" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+            <div class="test-controls">
+                <button onclick="testDownloadFree()">اختبار تحميل مجاني (10 ثواني)</button>
+                <button onclick="testDownloadPremium()">اختبار تحميل متقدم (فوري)</button>
+            </div>
+            <div class="test-output" id="downloadOutput"></div>
+        </div>
+
+        <!-- Payment Testing -->
+        <div class="test-section">
+            <h2>💳 اختبار الدفع</h2>
+            <div class="test-controls">
+                <button onclick="testPayment('stripe')">محاكاة دفع Stripe</button>
+                <button onclick="testPayment('paypal')">محاكاة دفع PayPal</button>
+                <button onclick="getPaymentHistory()">سجل الدفع</button>
+            </div>
+            <div class="test-output" id="paymentOutput"></div>
+        </div>
+
+        <!-- Storage Testing -->
+        <div class="test-section">
+            <h2>💾 اختبار التخزين</h2>
+            <div class="test-controls">
+                <button onclick="testLocalStorage()">اختبار Local Storage</button>
+                <button onclick="testPremiumStatus()">حالة الاشتراك</button>
+                <button onclick="clearStorage()">مسح البيانات</button>
+            </div>
+            <div class="test-output" id="storageOutput"></div>
+        </div>
+
+        <!-- PWA Testing -->
+        <div class="test-section">
+            <h2>📱 اختبار PWA</h2>
+            <div class="test-controls">
+                <button onclick="checkPWASupport()">فحص دعم PWA</button>
+                <button onclick="checkServiceWorker()">فحص Service Worker</button>
+                <button onclick="clearCache()">مسح Cache</button>
+            </div>
+            <div class="test-output" id="pwaOutput"></div>
+        </div>
+
+        <!-- API Testing -->
+        <div class="test-section">
+            <h2>🔌 اختبار API</h2>
+            <div class="test-controls">
+                <button onclick="testHealthAPI()">GET /api/health</button>
+                <button onclick="testCheckoutAPI()">POST /api/create-checkout-session</button>
+                <button onclick="testPaymentSuccessAPI()">POST /api/payment-success</button>
+            </div>
+            <div class="test-output" id="apiOutput"></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="test-section">
+            <h2>📊 الإحصائيات</h2>
+            <button onclick="generateReport()">إنشاء تقرير شامل</button>
+            <div class="test-output" id="statsOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        const outputs = {};
+
+        function log(section, message, type = 'info') {
+            const output = document.getElementById(`${section}Output`);
+            if (!output) return;
+
+            const timestamp = new Date().toLocaleTimeString('ar');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
+
+            const element = document.createElement('div');
+            element.className = className;
+            element.innerHTML = `<strong>[${timestamp}]</strong> ${icon} ${message}`;
+            output.appendChild(element);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput(section) {
+            const output = document.getElementById(`${section}Output`);
+            if (output) output.innerHTML = '';
+        }
+
+        // Server Health
+        async function checkServerHealth() {
+            clearOutput('health');
+            log('health', 'جاري فحص صحة الخادم...');
+
+            try {
+                const response = await fetch('/api/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    log('health', `الخادم يعمل بشكل طبيعي - ${data.timestamp}`, 'success');
+                    log('health', `البيئة: ${data.environment}`, 'info');
+                } else {
+                    log('health', `خطأ الخادم: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('health', `فشل الاتصال بالخادم: ${error.message}`, 'error');
+            }
+        }
+
+        function checkOnlineStatus() {
+            clearOutput('health');
+            const status = navigator.onLine ? 'متصل' : 'غير متصل';
+            const type = navigator.onLine ? 'success' : 'error';
+            log('health', `حالة الاتصال: ${status}`, type);
+
+            if (navigator.connection) {
+                const connection = navigator.connection;
+                log('health', `نوع الاتصال: ${connection.effectiveType}`, 'info');
+                log('health', `السرعة المقدرة: ${connection.downlink} Mbps`, 'info');
+            }
+        }
+
+        // Download Testing
+        async function testDownloadFree() {
+            clearOutput('download');
+            const url = document.getElementById('testUrl').value;
+
+            log('download', 'بدء اختبار التحميل المجاني (10 ثواني)...');
+
+            try {
+                const start = Date.now();
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url,
+                        format: 'mp3',
+                        isPremium: false
+                    })
+                });
+
+                const elapsed = Date.now() - start;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('download', `بدء التحميل بنجاح - الصيغة: ${data.format}`, 'success');
+                    log('download', `وقت الاستجابة: ${elapsed}ms`, 'info');
+                    
+                    // محاكاة التأخير
+                    let remaining = 10;
+                    const interval = setInterval(() => {
+                        log('download', `الانتظار: ${remaining} ثانية...`, 'info');
+                        remaining--;
+                        if (remaining < 0) clearInterval(interval);
+                    }, 1000);
+                } else {
+                    log('download', `خطأ: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('download', `فشل: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDownloadPremium() {
+            clearOutput('download');
+            const url = document.getElementById('testUrl').value;
+
+            log('download', 'بدء اختبار التحميل المتقدم (فوري)...');
+
+            try {
+                const start = Date.now();
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: url,
+                        format: 'mp4',
+                        isPremium: true
+                    })
+                });
+
+                const elapsed = Date.now() - start;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('download', `✅ تم التحميل بنجاح - الصيغة: ${data.format}`, 'success');
+                    log('download', `⚡ وقت الاستجابة: ${elapsed}ms (سريع جداً!)`, 'success');
+                } else {
+                    log('download', `خطأ: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('download', `فشل: ${error.message}`, 'error');
+            }
+        }
+
+        // Payment Testing
+        async function testPayment(provider) {
+            clearOutput('payment');
+            log('payment', `محاكاة الدفع عبر ${provider}...`);
+
+            try {
+                // محاكاة عملية الدفع
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                const response = await fetch('/api/payment-success', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: provider,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('payment', `✅ الدفع بنجاح - معرّف: ${data.paymentId}`, 'success');
+                    log('payment', `تم تحديث الاشتراك إلى المتقدم`, 'success');
+
+                    // تحديث localStorage
+                    localStorage.setItem('isPremium', 'true');
+                    localStorage.setItem('paymentProvider', provider);
+                } else {
+                    log('payment', `خطأ: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('payment', `فشل: ${error.message}`, 'error');
+            }
+        }
+
+        async function getPaymentHistory() {
+            clearOutput('payment');
+            log('payment', 'جاري جلب سجل الدفع...');
+
+            try {
+                const response = await fetch('/api/payment-history');
+                if (response.ok) {
+                    const data = await response.json();
+                    log('payment', `عدد المدفوعات: ${data.count}`, 'success');
+                    
+                    data.payments.forEach(payment => {
+                        log('payment', `${payment.provider} - $${payment.amount} - ${payment.status}`, 'info');
+                    });
+                } else {
+                    log('payment', `خطأ: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('payment', `فشل: ${error.message}`, 'error');
+            }
+        }
+
+        // Storage Testing
+        function testLocalStorage() {
+            clearOutput('storage');
+            try {
+                const testData = { test: 'data', time: new Date().toISOString() };
+                localStorage.setItem('test', JSON.stringify(testData));
+                const retrieved = JSON.parse(localStorage.getItem('test'));
+
+                log('storage', `✓ Local Storage يعمل بشكل طبيعي`, 'success');
+                log('storage', `بيانات الاختبار: ${JSON.stringify(retrieved)}`, 'info');
+                localStorage.removeItem('test');
+            } catch (error) {
+                log('storage', `✗ خطأ في Local Storage: ${error.message}`, 'error');
+            }
+        }
+
+        function testPremiumStatus() {
+            clearOutput('storage');
+            const isPremium = localStorage.getItem('isPremium') === 'true';
+            const status = isPremium ? 'متقدم' : 'مجاني';
+            const type = isPremium ? 'success' : 'info';
+
+            log('storage', `حالة الاشتراك: ${status}`, type);
+
+            if (isPremium) {
+                const expiry = localStorage.getItem('premiumExpiry');
+                if (expiry) {
+                    log('storage', `تاريخ انتهاء الاشتراك: ${expiry}`, 'info');
+                }
+            }
+        }
+
+        function clearStorage() {
+            clearOutput('storage');
+            try {
+                localStorage.clear();
+                log('storage', `✓ تم مسح جميع البيانات المحفوظة`, 'success');
+            } catch (error) {
+                log('storage', `✗ فشل مسح البيانات: ${error.message}`, 'error');
+            }
+        }
+
+        // PWA Testing
+        function checkPWASupport() {
+            clearOutput('pwa');
+            
+            const features = {
+                'Service Worker': 'serviceWorker' in navigator,
+                'Web App Manifest': !!document.querySelector('link[rel="manifest"]'),
+                'Clipboard API': !!navigator.clipboard,
+                'Geolocation API': !!navigator.geolocation,
+                'Notification API': !!window.Notification,
+                'Cache API': !!('caches' in window),
+                'IndexedDB': !!window.indexedDB
+            };
+
+            Object.entries(features).forEach(([feature, supported]) => {
+                log('pwa', `${feature}: ${supported ? '✓ مدعوم' : '✗ غير مدعوم'}`, 
+                    supported ? 'success' : 'error');
+            });
+        }
+
+        async function checkServiceWorker() {
+            clearOutput('pwa');
+            log('pwa', 'جاري البحث عن Service Worker...');
+
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.getRegistrations();
+                    
+                    if (registration.length > 0) {
+                        log('pwa', `✓ تم العثور على ${registration.length} Service Worker`, 'success');
+                        registration.forEach(reg => {
+                            log('pwa', `الحالة: ${reg.active ? 'نشط' : 'غير نشط'}`, 'info');
+                            log('pwa', `الـ Scope: ${reg.scope}`, 'info');
+                        });
+                    } else {
+                        log('pwa', '✗ لم يتم العثور على Service Worker', 'error');
+                    }
+                } else {
+                    log('pwa', '✗ Service Worker غير مدعوم', 'error');
+                }
+            } catch (error) {
+                log('pwa', `خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearCache() {
+            clearOutput('pwa');
+            try {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+                log('pwa', `✓ تم مسح ${cacheNames.length} من الـ Cache`, 'success');
+            } catch (error) {
+                log('pwa', `✗ فشل مسح Cache: ${error.message}`, 'error');
+            }
+        }
+
+        // API Testing
+        async function testHealthAPI() {
+            clearOutput('api');
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                log('api', `الحالة: ${response.status} ${response.statusText}`, 'success');
+                log('api', `البيانات: ${JSON.stringify(data, null, 2)}`, 'info');
+            } catch (error) {
+                log('api', `خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCheckoutAPI() {
+            clearOutput('api');
+            try {
+                const response = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('api', `الحالة: ${response.status} ${response.statusText}`, 'success');
+                    log('api', `Session ID: ${data.sessionId}`, 'info');
+                } else {
+                    log('api', `خطأ: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('api', `خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPaymentSuccessAPI() {
+            clearOutput('api');
+            try {
+                const response = await fetch('/api/payment-success', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        provider: 'test',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+                log('api', `الحالة: ${response.status}`, 'success');
+                log('api', `النتيجة: ${JSON.stringify(data)}`, 'info');
+            } catch (error) {
+                log('api', `خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Generate Report
+        async function generateReport() {
+            clearOutput('stats');
+            log('stats', 'إنشاء التقرير الشامل...');
+
+            try {
+                // جمع المعلومات
+                const report = {
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent.substring(0, 50),
+                    online: navigator.onLine,
+                    storage: {
+                        isPremium: localStorage.getItem('isPremium'),
+                        provider: localStorage.getItem('paymentProvider')
+                    },
+                    memory: performance.memory ? {
+                        usedJSHeapSize: (performance.memory.usedJSHeapSize / 1048576).toFixed(2) + ' MB',
+                        totalJSHeapSize: (performance.memory.totalJSHeapSize / 1048576).toFixed(2) + ' MB'
+                    } : 'غير متاح'
+                };
+
+                log('stats', JSON.stringify(report, null, 2), 'info');
+                log('stats', '✓ تم إنشاء التقرير بنجاح', 'success');
+            } catch (error) {
+                log('stats', `خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Initial check on page load
+        window.addEventListener('load', () => {
+            console.log('🧪 صفحة الاختبار جاهزة للعمل');
+            checkServerHealth();
+        });
+    </script>
+</body>
+</html>

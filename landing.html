@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="htmlElement">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to MP3 - حمل فيديوهات يوتيوب</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            padding: 20px;
+            animation: bgShift 10s ease infinite;
+        }
+
+        @keyframes bgShift {
+            0%, 100% {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            }
+            50% {
+                background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #6366f1 100%);
+            }
+        }
+
+        .container {
+            text-align: center;
+            animation: slideUp 0.8s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 40px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .youtube-logo-container {
+            animation: float 3s ease-in-out infinite;
+            cursor: pointer;
+        }
+
+        .youtube-logo {
+            width: 60px;
+            height: 60px;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
+        .youtube-logo:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .logo {
+            width: 150px;
+            height: 150px;
+            background: white;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo svg {
+            width: 100px;
+            height: 100px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        h1 {
+            font-size: 48px;
+            color: white;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+            font-weight: 300;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .description {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 50px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 50px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 14px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .cta-button {
+            background: white;
+            color: #6366f1;
+            border: none;
+            padding: 20px 60px;
+            font-size: 20px;
+            font-weight: 700;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: #f0f4ff;
+        }
+
+        .cta-button:active {
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        .cta-icon {
+            margin-left: 10px;
+            display: inline-block;
+            font-size: 24px;
+        }
+
+        .particles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float-particle linear infinite;
+        }
+
+        @keyframes float-particle {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .language-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        .language-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: white;
+        }
+
+        html[dir="rtl"] .language-toggle {
+            left: auto;
+            right: 20px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 36px;
+            }
+
+            .subtitle {
+                font-size: 18px;
+            }
+
+            .description {
+                font-size: 14px;
+            }
+
+            .logo {
+                width: 120px;
+                height: 120px;
+            }
+
+            .logo svg {
+                width: 80px;
+                height: 80px;
+            }
+
+            .cta-button {
+                padding: 15px 40px;
+                font-size: 18px;
+            }
+
+            .features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+
+            .logo {
+                width: 100px;
+                height: 100px;
+                margin-bottom: 30px;
+            }
+
+            .logo svg {
+                width: 60px;
+                height: 60px;
+            }
+
+            .description {
+                margin-bottom: 30px;
+            }
+
+            .cta-button {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+
+            .features {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .feature {
+                padding: 15px;
+                font-size: 12px;
+            }
+
+            .feature-icon {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <!-- Language Toggle -->
+    <button class="language-toggle" id="langToggle" onclick="toggleLanguage()">English</button>
+
+    <div class="content">
+        <div class="container">
+            <!-- Logo -->
+            <div class="logo-container">
+                <div class="logo" onclick="goToApp()">
+                    <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+                        <rect fill="#6366f1" width="192" height="192" rx="30"/>
+                        <path fill="white" d="M144 64c0-3.528-2.86-6.4-6.4-6.4h-89.2c-3.528 0-6.4 2.872-6.4 6.4v64c0 3.528 2.872 6.4 6.4 6.4h89.2c3.54 0 6.4-2.872 6.4-6.4V64zm-57.6 48l-19.2-12.8v25.6l19.2-12.8z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- YouTube Logo -->
+            <div class="youtube-logo-container" title="YouTube">
+                <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" class="youtube-logo">
+                    <path fill="#FF0000" d="M43.2,33.9c-0.4,2.1-2.1,3.7-4.2,4c-3.3,0.5-8.5,1.1-15,1.1c-6.5,0-11.6-0.6-15-1.1c-2.1-0.3-3.8-1.9-4.2-4C4.4,31.6,4,28.2,4,24c0-4.2,0.4-7.6,0.8-9.9c0.4-2.1,2.1-3.7,4.2-4C12.3,9.6,17.5,9,24,9c6.5,0,11.6,0.6,15,1.1c2.1,0.3,3.8,1.9,4.2,4c0.4,2.3,0.8,5.7,0.8,9.9C44,28.2,43.6,31.6,43.2,33.9z"/>
+                    <path fill="#FFF" d="M20 31L20 17 30 24z"/>
+                </svg>
+            </div>
+
+            <!-- Title -->
+            <h1 data-ar="YouTube to MP3" data-en="YouTube to MP3">YouTube to MP3</h1>
+            <p class="subtitle" data-ar="حمّل فيديوهات يوتيوب بسهولة ⚡" data-en="Download YouTube Videos Easily ⚡">حمّل فيديوهات يوتيوب بسهولة ⚡</p>
+
+            <!-- Description -->
+            <p class="description" data-ar="حمّل فيديوهات يوتيوب بصيغة MP3 أو MP4 بسرعة وأمان" data-en="Download YouTube videos in MP3 or MP4 format quickly and securely">
+                حمّل فيديوهات يوتيوب بصيغة MP3 أو MP4 بسرعة وأمان
+            </p>
+
+            <!-- Features -->
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🎵</div>
+                    <div data-ar="MP3 و MP4" data-en="MP3 & MP4">MP3 و MP4</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <div data-ar="سريع جداً" data-en="Super Fast">سريع جداً</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <div data-ar="على كل الأجهزة" data-en="All Devices">على كل الأجهزة</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <div data-ar="آمن وآمن" data-en="Safe & Secure">آمن وآمن</div>
+                </div>
+            </div>
+
+            <!-- CTA Button -->
+            <button class="cta-button" onclick="goToApp()" data-ar-text="ابدأ الآن" data-en-text="Start Now">
+                <span class="button-text">ابدأ الآن</span>
+                <span class="cta-icon">→</span>
+            </button>
+
+            <!-- Alternative link -->
+            <p style="margin-top: 30px; color: rgba(255, 255, 255, 0.7); font-size: 14px;" data-ar="أو انقر على الصورة أعلاه" data-en="Or click the image above">
+                أو انقر على الصورة أعلاه
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // إدارة اللغات
+        let currentLanguage = localStorage.getItem('language') || 'ar';
+
+        // تطبيق اللغة عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            applyLanguage(currentLanguage);
+            createParticles();
+        });
+
+        // تبديل اللغة
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('language', currentLanguage);
+            applyLanguage(currentLanguage);
+        }
+
+        // تطبيق اللغة على الصفحة
+        function applyLanguage(lang) {
+            const htmlElement = document.getElementById('htmlElement');
+            const langToggle = document.getElementById('langToggle');
+
+            // تغيير اتجاه الصفحة
+            if (lang === 'ar') {
+                htmlElement.setAttribute('dir', 'rtl');
+                htmlElement.setAttribute('lang', 'ar');
+                langToggle.textContent = 'English';
+            } else {
+                htmlElement.setAttribute('dir', 'ltr');
+                htmlElement.setAttribute('lang', 'en');
+                langToggle.textContent = 'العربية';
+            }
+
+            // تحديث جميع العناصر التي تحتوي على data-ar و data-en
+            document.querySelectorAll('[data-ar][data-en]').forEach(el => {
+                el.textContent = lang === 'ar' ? el.dataset.ar : el.dataset.en;
+            });
+
+            // تحديث الأزرار
+            document.querySelectorAll('[data-ar-text][data-en-text]').forEach(el => {
+                const buttonText = el.querySelector('.button-text');
+                if (buttonText) {
+                    buttonText.textContent = lang === 'ar' ? el.dataset.arText : el.dataset.enText;
+                }
+            });
+
+            // تحديث عنوان الصفحة
+            document.title = lang === 'ar' 
+                ? 'YouTube to MP3 - حمل فيديوهات يوتيوب'
+                : 'YouTube to MP3 - Download YouTube Videos';
+        }
+
+        // توليد جسيمات عشوائية
+        function createParticles() {
+            const container = document.getElementById('particles');
+            if (container.querySelector('.particle')) return; // تجنب التكرار
+
+            const particleCount = 20;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                const size = Math.random() * 40 + 10;
+                const left = Math.random() * 100;
+                const duration = Math.random() * 10 + 15;
+                const delay = Math.random() * 5;
+
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = left + '%';
+                particle.style.bottom = '-100px';
+                particle.style.animationDuration = duration + 's';
+                particle.style.animationDelay = delay + 's';
+
+                container.appendChild(particle);
+            }
+        }
+
+        // الذهاب إلى التطبيق الرئيسي
+        function goToApp() {
+            // فتح التطبيق في نفس الصفحة
+            window.location.href = '/app';
+            // أو فتح في نافذة جديدة:
+            // window.open('/app', '_blank');
+        }
+
+        // إضافة اختصارات لوحة المفاتيح
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                goToApp();
+            }
+            // Ctrl/Cmd + L لتبديل اللغة
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                toggleLanguage();
+            }
+        });
+
+        // تأثير عند تحريك الفأرة على الشاشة
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            // إضافة تأثير parallax للخلفية
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach((particle, index) => {
+                const rect = particle.getBoundingClientRect();
+                const distX = (mouseX - rect.left) * 0.01;
+                const distY = (mouseY - rect.top) * 0.01;
+                particle.style.transform = `translate(${distX}px, ${distY}px)`;
+            });
+        });
+
+        // Prevent dragging
+        document.querySelectorAll('*').forEach(el => {
+            el.draggable = false;
+        });
+
+        // Analytics
+        console.log('%c🚀 YouTube to MP3 Landing Page', 'font-size: 20px; color: #6366f1; font-weight: bold;');
+        console.log(currentLanguage === 'ar' 
+            ? 'اضغط على الشاشة أو الزر للبدء! (Ctrl+L لتبديل اللغة)'
+            : 'Click on the screen or button to start! (Ctrl+L to toggle language)');
+    </script>
+</body>
+</html>

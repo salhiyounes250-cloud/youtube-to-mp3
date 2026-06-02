@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="htmlElement">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="حمل فيديوهات يوتيوب بصيغة MP3 و MP4">
+    <meta name="theme-color" content="#6366f1">
+    <title>YouTube to MP3 - حمل فيديوهات يوتيوب</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%236366f1' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='white' text-anchor='middle' dominant-baseline='middle' font-family='Arial' font-weight='bold'>Y</text></svg>">
+</head>
+<body>
+    <div class="background-gradient"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo">
+                    <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+                        <rect fill="#6366f1" width="192" height="192" rx="30"/>
+                        <path fill="white" d="M144 64c0-3.528-2.86-6.4-6.4-6.4h-89.2c-3.528 0-6.4 2.872-6.4 6.4v64c0 3.528 2.872 6.4 6.4 6.4h89.2c3.54 0 6.4-2.872 6.4-6.4V64zm-57.6 48l-19.2-12.8v25.6l19.2-12.8z"/>
+                    </svg>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h1>YouTube to MP3</h1>
+                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" style="width: 40px; height: 40px; margin-top: -5px;">
+                        <path fill="#FF0000" d="M43.2,33.9c-0.4,2.1-2.1,3.7-4.2,4c-3.3,0.5-8.5,1.1-15,1.1c-6.5,0-11.6-0.6-15-1.1c-2.1-0.3-3.8-1.9-4.2-4C4.4,31.6,4,28.2,4,24c0-4.2,0.4-7.6,0.8-9.9c0.4-2.1,2.1-3.7,4.2-4C12.3,9.6,17.5,9,24,9c6.5,0,11.6,0.6,15,1.1c2.1,0.3,3.8,1.9,4.2,4c0.4,2.3,0.8,5.7,0.8,9.9C44,28.2,43.6,31.6,43.2,33.9z"/>
+                        <path fill="#FFF" d="M20 31L20 17 30 24z"/>
+                    </svg>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="langToggleBtn" class="install-btn" onclick="toggleLanguage()" title="Toggle Language / تبديل اللغة" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);">
+                    <span id="langText">🌐 English</span>
+                </button>
+                <button id="installBtn" class="install-btn" title="ثبت التطبيق على جهازك">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3.29.5-4.5 1.07C10.29 3.5 8.76 3 7 3 4.5 3 2 5 2 8.5c0 2.3 1.5 4.05 3 5.5m13 2v5m0 0v2m0-2h-4m4 0h4"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <div class="input-section">
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="urlInput" 
+                        class="url-input" 
+                        data-ar-placeholder="أدخل رابط فيديو يوتيوب..."
+                        data-en-placeholder="Enter YouTube video URL..."
+                        placeholder="أدخل رابط فيديو يوتيوب..."
+                        autocomplete="off"
+                    >
+                    <button class="paste-btn" id="pasteBtn" title="لصق الرابط">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Format Toggle -->
+                <div class="format-section">
+                    <label data-ar="صيغة التحميل:" data-en="Download Format:">صيغة التحميل:</label>
+                    <div class="format-toggle">
+                        <input type="radio" id="mp3" name="format" value="mp3" checked>
+                        <label for="mp3" class="format-label" data-ar="🎵 MP3 (صوت)" data-en="🎵 MP3 (Audio)">🎵 MP3 (صوت)</label>
+                        
+                        <input type="radio" id="mp4" name="format" value="mp4">
+                        <label for="mp4" class="format-label" data-ar="🎬 MP4 (فيديو)" data-en="🎬 MP4 (Video)">🎬 MP4 (فيديو)</label>
+                    </div>
+                </div>
+
+                <!-- Premium Section -->
+                <div class="premium-section">
+                    <div class="premium-info">
+                        <div class="premium-badge" id="premiumBadge">
+                            <span class="badge-text" data-ar="مجاني" data-en="Free">مجاني</span>
+                        </div>
+                        <div class="premium-details">
+                            <p id="speedStatus">
+                                <span data-ar="سرعة البحث: " data-en="Search Speed: "></span>
+                                <strong id="speedValue" data-ar="10 ثواني" data-en="10 seconds">10 ثواني</strong>
+                            </p>
+                            <button id="upgradeBtn" class="upgrade-btn" data-ar="ترقي للنسخة المتقدمة - $5/سنة" data-en="Upgrade to Premium - $5/year">ترقي للنسخة المتقدمة - $5/سنة</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Button -->
+                <button class="download-btn" id="downloadBtn">
+                    <span class="btn-icon">⬇️</span>
+                    <span class="btn-text" data-ar="ابدأ التحميل" data-en="Start Download">ابدأ التحميل</span>
+                </button>
+            </div>
+
+            <!-- Info Section -->
+            <div class="info-section">
+                <div class="info-card">
+                    <h3 data-ar="🔒 آمن وسريع" data-en="🔒 Safe & Fast">🔒 آمن وسريع</h3>
+                    <p data-ar="تحميل آمن وبدون إعلانات" data-en="Safe download without ads">تحميل آمن وبدون إعلانات</p>
+                </div>
+                <div class="info-card">
+                    <h3 data-ar="📱 متوافق" data-en="📱 Compatible">📱 متوافق</h3>
+                    <p data-ar="يعمل على جميع الأجهزة" data-en="Works on all devices">يعمل على جميع الأجهزة</p>
+                </div>
+                <div class="info-card">
+                    <h3 data-ar="⚡ سريع" data-en="⚡ Fast">⚡ سريع</h3>
+                    <p data-ar="تحميل فوري مع النسخة المتقدمة" data-en="Instant download with Premium">تحميل فوري مع النسخة المتقدمة</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Payment Modal -->
+        <div id="paymentModal" class="modal">
+            <div class="modal-content">
+                <button class="close-btn" id="closeModal">&times;</button>
+                <h2 data-ar="ترقي إلى النسخة المتقدمة 🚀" data-en="Upgrade to Premium 🚀">ترقي إلى النسخة المتقدمة 🚀</h2>
+                <div class="payment-features">
+                    <div class="feature">
+                        <span class="feature-icon">⚡</span>
+                        <h3 data-ar="تحميل فوري" data-en="Instant Download">تحميل فوري</h3>
+                        <p data-ar="بحث سريع جداً بدون تأخير" data-en="Super fast search without delay">بحث سريع جداً بدون تأخير</p>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">🎁</span>
+                        <h3 data-ar="بدون إعلانات" data-en="No Ads">بدون إعلانات</h3>
+                        <p data-ar="تجربة نظيفة بدون إزعاجات" data-en="Clean experience without distractions">تجربة نظيفة بدون إزعاجات</p>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">📥</span>
+                        <h3 data-ar="تحميل متعدد" data-en="Multiple Downloads">تحميل متعدد</h3>
+                        <p data-ar="حمل عدة فيديوهات في نفس الوقت" data-en="Download multiple videos at once">حمل عدة فيديوهات في نفس الوقت</p>
+                    </div>
+                </div>
+                
+                <div class="payment-options">
+                    <button id="emailPayBtn" class="pay-btn email-btn" onclick="initiatePayment('email')">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                        <span data-ar="إرسال طلب دفع" data-en="Send Payment Request">إرسال طلب دفع</span>
+                    </button>
+                </div>
+                <p class="payment-note" data-ar="� اشتراك سنوي بـ $5 - سيتم التواصل معك عبر البريد" data-en="📧 Annual subscription $5 - We will contact you via email">📧 اشتراك سنوي بـ $5 - سيتم التواصل معك عبر البريد</p>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p id="loadingText" data-ar="جاري البحث عن الفيديو..." data-en="Searching for video...">جاري البحث عن الفيديو...</p>
+            <p id="countdownText" style="font-size: 12px; margin-top: 10px;"></p>
+        </div>
+
+        <!-- Success Message -->
+        <div id="successMessage" class="success-message" style="display: none;">
+            <svg class="checkmark" viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="25" fill="none"/>
+                <path fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p id="successText"></p>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p data-ar="© 2024 YouTube to MP3 - جميع الحقوق محفوظة" data-en="© 2024 YouTube to MP3 - All Rights Reserved">© 2024 YouTube to MP3 - جميع الحقوق محفوظة</p>
+            <p class="footer-note" data-ar="⚠️ استخدم هذا الموقع فقط للملفات التي تملك حقوق نشرها" data-en="⚠️ Use this site only for files you own the rights to">⚠️ استخدم هذا الموقع فقط للملفات التي تملك حقوق نشرها</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
