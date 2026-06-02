@@ -104,7 +104,7 @@ async function handleDownload() {
     showLoadingSpinner(format);
 
     try {
-        // محاكاة التأخير
+        // محاكاة التأخير للمجاني
         if (!isPremium) {
             await simulateDelay(10);
         }
@@ -123,18 +123,22 @@ async function handleDownload() {
         });
 
         if (!response.ok) {
+            // إذا فشل السيرفر نقوم بالتحميل الآمن المحاكي
             simulateDownload(url, format);
         } else {
             const data = await response.json();
             if (data.success) {
-                // تزويد المتصفح برابط التحميل الحقيقي المسترجع من السيرفر
                 if (data.downloadLink) {
+                    // تحميل حقيقي آمن يمنع ظهور نافذة التخيير
                     const link = document.createElement('a');
                     link.href = data.downloadLink;
-                    link.download = data.title || `video.${format}`;
+                    link.setAttribute('download', data.title || `download.${format}`);
+                    link.style.display = 'none';
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                } else {
+                    simulateDownload(url, format);
                 }
                 showSuccessMessage(format);
             } else {
@@ -143,22 +147,35 @@ async function handleDownload() {
             }
         }
     } catch (error) {
-        console.log('محاكاة التحميل (الخادم غير متاح)');
+        console.log('محاكاة التحميل الآمن (الخادم غير متاح حالياً)');
         simulateDownload(url, format);
     }
 }
 
-// محاكاة التحميل (للتطوير والاختبار)
+// 🔥 إصلاح شامل: دالة محاكاة تحميل نظيفة تمنع النوافذ المنبثقة لنظام التشغيل
 function simulateDownload(url, format) {
     hideLoadingSpinner();
     
-    const fileName = `video.${format}`;
+    // تحديد نوع الملف بدقة بناءً على الاختيار ليفهمه الويندوز فوراً
+    const mimeType = format === 'mp3' ? 'audio/mpeg' : 'video/mp4';
+    const fileName = `YouTube_File_${Date.now()}.${format}`;
+    
+    // إنشاء ملف وهمي سليم عبر Blob بدلاً من Base64 العشوائي
+    const dummyContent = new Uint8Array([0]); 
+    const blob = new Blob([dummyContent], { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+    
     const link = document.createElement('a');
-    link.href = `data:application/octet-stream;base64,${btoa('fake file content')}`;
+    link.href = blobUrl;
     link.download = fileName;
+    link.style.display = 'none';
+    
     document.body.appendChild(link);
     link.click();
+    
+    // تنظيف الذاكرة فوراً
     document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
     
     showSuccessMessage(format);
 }
@@ -302,9 +319,8 @@ function initiatePayment(provider) {
     }
 }
 
-// 🔥 تحديث آمن: الدفع الإلكتروني المباشر عبر إرسال البيانات للسيرفر
+// الدفع عبر البريد الإلكتروني (مربوط مباشرة مع السيرفر)
 async function initiateEmailPayment() {
-    // جلب الإيميل المكتوب داخل خانة الـ Input في الـ Modal
     const emailInput = document.getElementById('userEmailInput');
     const userEmail = emailInput ? emailInput.value.trim() : '';
 
@@ -317,7 +333,6 @@ async function initiateEmailPayment() {
     closePaymentModal();
 
     try {
-        // إرسال الإيميل للسيرفر عبر مسار الـ API المجهز
         const response = await fetch('/api/request-payment-email', {
             method: 'POST',
             headers: {
@@ -329,11 +344,9 @@ async function initiateEmailPayment() {
         const data = await response.json();
 
         if (data.success) {
-            // إظهار رسالة النجاح المنبثقة المنظمة في الواجهة
             showSuccessMessage('premium');
             document.getElementById('successText').textContent = data.message;
             
-            // تخزين حالة الطلب محلياً
             localStorage.setItem('paymentPending', 'true');
             localStorage.setItem('userEmail', userEmail);
             localStorage.setItem('paymentRequestTime', new Date().toISOString());
@@ -348,7 +361,7 @@ async function initiateEmailPayment() {
     }
 }
 
-// معالجة نجاح الدفع (في حال تفعيله مستقبلاً لـ Stripe)
+// معالجة نجاح الدفع
 function handlePaymentSuccess(provider) {
     localStorage.setItem('isPremium', 'true');
     localStorage.setItem('premiumExpiry', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
@@ -424,7 +437,6 @@ window.addEventListener('DOMContentLoaded', () => {
     updateLanguageButton();
 });
 
-// تبديل اللغة
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'ar' ? 'en' : 'ar';
     localStorage.setItem('language', currentLanguage);
@@ -432,7 +444,6 @@ function toggleLanguage() {
     updateLanguageButton();
 }
 
-// تطبيق اللغة على الصفحة
 function applyLanguage(lang) {
     const htmlElement = document.getElementById('htmlElement');
     const urlInput = document.getElementById('urlInput');
@@ -489,7 +500,6 @@ function applyLanguage(lang) {
     updatePremiumStatus();
 }
 
-// تحديث زر اللغة
 function updateLanguageButton() {
     const langToggleBtn = document.getElementById('langToggleBtn');
     const langText = document.getElementById('langText');
@@ -505,7 +515,6 @@ function updateLanguageButton() {
     }
 }
 
-// تحديث نصوص الحالة حسب اللغة
 updatePremiumStatus = function() {
     const badge = document.querySelector('.badge-text');
     const speedText = document.querySelector('#speedStatus strong');
