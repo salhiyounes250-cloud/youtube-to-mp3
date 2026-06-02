@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import Stripe from 'stripe';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import * as config from './config.js';
+import config from './config.js';
 
 // Load environment variables
 dotenv.config();
@@ -148,11 +148,6 @@ app.post('/api/payment-success', (req, res) => {
         console.log(`💰 Amount: $${paymentData.amount} → ${ADMIN_EMAIL}`);
         console.log(`👤 User: ${paymentData.userEmail}`);
 
-        // في تطبيق حقيقي، قم بـ:
-        // 1. إرسال بريد إلكتروني للمشرف
-        // 2. تحديث قاعدة البيانات
-        // 3. إرسال بريد تأكيد للمستخدم
-
         res.json({
             success: true,
             message: 'Payment received successfully',
@@ -174,7 +169,6 @@ app.get('/api/subscription-status/:userId', (req, res) => {
     try {
         const { userId } = req.params;
 
-        // في تطبيق حقيقي، اطلب من قاعدة البيانات
         const isPremium = localStorage?.getItem('isPremium') === 'true';
 
         res.json({
@@ -233,28 +227,19 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // معالجة الأحداث المختلفة
     switch (event.type) {
         case 'customer.subscription.created':
             console.log('New subscription created:', event.data.object);
-            // تحديث قاعدة البيانات
             break;
-
         case 'customer.subscription.deleted':
             console.log('Subscription cancelled:', event.data.object);
-            // تحديث قاعدة البيانات
             break;
-
         case 'invoice.payment_succeeded':
             console.log('Payment succeeded:', event.data.object);
-            // تحديث قاعدة البيانات
             break;
-
         case 'invoice.payment_failed':
             console.log('Payment failed:', event.data.object);
-            // إرسال بريد إلكتروني للمستخدم
             break;
-
         default:
             console.log(`Unhandled event type: ${event.type}`);
     }
@@ -300,14 +285,8 @@ app.get('/success', (req, res) => {
                     color: white;
                     font-size: 50px;
                 }
-                h1 {
-                    color: #1e293b;
-                    margin-bottom: 10px;
-                }
-                p {
-                    color: #64748b;
-                    margin-bottom: 20px;
-                }
+                h1 { color: #1e293b; margin-bottom: 10px; }
+                p { color: #64748b; margin-bottom: 20px; }
                 a {
                     display: inline-block;
                     background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -373,14 +352,8 @@ app.get('/cancel', (req, res) => {
                     color: white;
                     font-size: 50px;
                 }
-                h1 {
-                    color: #1e293b;
-                    margin-bottom: 10px;
-                }
-                p {
-                    color: #64748b;
-                    margin-bottom: 20px;
-                }
+                h1 { color: #1e293b; margin-bottom: 10px; }
+                p { color: #64748b; margin-bottom: 20px; }
                 a {
                     display: inline-block;
                     background: linear-gradient(135deg, #6366f1, #8b5cf6);
