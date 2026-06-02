@@ -7,6 +7,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config.js';
 
+// استيراد مكتبة هجينة قوية وجاهزة للتحميل المباشر وتخطي القيود
+import ytdl from '@distube/ytdl-core';
+
 // Load environment variables
 dotenv.config();
 
@@ -28,10 +31,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve static files
 app.use(express.static(__dirname));
 
-// Store for payments (في تطبيق حقيقي، استخدم قاعدة بيانات)
+// Store for payments
 const payments = new Map();
 
-// 🔥 حل مشكلة الانهيار: الحماية الفعالة في حال عدم تعريف الكائن داخل ملف config.js
 const ADMIN_EMAIL = config?.admin?.paymentReceiver || 'salhiyounes250@gmail.com';
 
 // دالة مساعدة لاستخراج الـ ID الخاص بفيديو يوتيوب من الرابط
@@ -43,7 +45,7 @@ function getYouTubeId(url) {
 
 // ===== API Routes =====
 
-// 📬 مسار استقبال طلبات الدفع عبر البريد الإلكتروني (عند ضغط زر إرسال طلب دفع)
+// 📬 مسار استقبال طلبات الدفع عبر البريد الإلكتروني
 app.post('/api/request-payment-email', (req, res) => {
     try {
         const { email } = req.body;
@@ -55,7 +57,6 @@ app.post('/api/request-payment-email', (req, res) => {
             });
         }
 
-        // طباعة الطلب في الـ Logs الخاصة بـ Render لتبقيك على اطلاع فوراً
         console.log(`\n========================================`);
         console.log(`📩 طلب دفع يدوي جديد!`);
         console.log(`👤 إيميل العميل: ${email}`);
@@ -77,12 +78,11 @@ app.post('/api/request-payment-email', (req, res) => {
     }
 });
 
-// 1. Download endpoint (التحميل الحقيقي والمستقر باستخدام الـ API الخارجي)
+// 1. Download endpoint (التحميل الذكي والمستقر بالبث المباشر الموثوق)
 app.post('/api/download', async (req, res) => {
     try {
         const { url, format, isPremium } = req.body;
 
-        // التحقق من البيانات
         if (!url || !format) {
             return res.status(400).json({
                 success: false,
@@ -98,44 +98,93 @@ app.post('/api/download', async (req, res) => {
             });
         }
 
-        // الاتصال بـ API الخارجي المجاني لجلب رابط التحميل الحقيقي
+        // استخدام الـ API الخارجي كحل أساسي مرن وسريع، وفي حال تعذره، يتدفق الكود تلقائياً للـ Streaming
         const apiUrl = `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`;
         const options = {
             method: 'GET',
             headers: {
-                'x-rapidapi-key': process.env.RAPIDAPI_KEY || '68c7847c2cmsh27a78371306b5adp1b610ajsn313a8ef5b46e', // مفتاح جاهز ومجاني للعمل فوراً
+                'x-rapidapi-key': process.env.RAPIDAPI_KEY || '68c7847c2cmsh27a78371306b5adp1b610ajsn313a8ef5b46e',
                 'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com'
             }
         };
 
-        const apiResponse = await fetch(apiUrl, options);
-        const data = await apiResponse.json();
+        try {
+            const apiResponse = await fetch(apiUrl, options);
+            const data = await apiResponse.json();
 
-        if (data.status === 'ok') {
-            console.log(`Download initiated successfully: ${url} - Format: ${format} - Premium: ${isPremium}`);
-            
-            // إرسال رابط التحميل الحقيقي والبيانات الكاملة للمتصفح
-            res.json({
-                success: true,
-                message: 'تم تجهيز الملف بنجاح!',
-                downloadLink: data.link, // الرابط المباشر للملف التحميل
-                title: data.title,
-                format: format,
-                premium: isPremium
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: data.msg || 'فشل السيرفر في تحويل هذا الفيديو، جرب رابطاً آخر.'
-            });
+            if (data.status === 'ok' && data.link) {
+                console.log(`[API Success] Video processed via API pipeline.`);
+                return res.json({
+                    success: true,
+                    message: 'تم تجهيز الملف بنجاح!',
+                    downloadLink: data.link, 
+                    title: data.title || `Audio_${videoId}`,
+                    format: format,
+                    premium: isPremium
+                });
+            }
+        } catch (apiErr) {
+            console.log(`[API Proxy Node] External API failed or ratelimited, switching to fallback Stream.`);
         }
 
+        // الخط الدفاعي الثاني والـ Fallback المضمون: تحميل الملف عبر الـ Streaming لحل مشكلة الملفات المعطوبة
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        
+        // جلب معلومات الفيديو الأساسية لتمرير الاسم الصحيح للملف
+        const info = await ytdl.getInfo(videoUrl);
+        const title = info.videoDetails.title.replace(/[^\w\s\u0600-\u06FF]/gi, ''); // تنظيف الاسم
+
+        // في نظام الـ Fallback نقوم بإنشاء رابط محلي ديناميكي يشير إلى دالة الـ Stream بالأسفل
+        const localDownloadLink = `/api/stream-audio?id=${videoId}&format=${format}`;
+
+        res.json({
+            success: true,
+            message: 'تم توليد رابط بث مباشر للملف بنجاح!',
+            downloadLink: localDownloadLink,
+            title: title,
+            format: format,
+            premium: isPremium
+        });
+
     } catch (error) {
-        console.error('Download error:', error);
+        console.error('Download processing core error:', error);
         res.status(500).json({
             success: false,
-            message: 'حدث خطأ في معالجة التحميل أثناء الاتصال بالخادم الخارجي'
+            message: 'حدث خطأ في معالجة التحميل وتوليد الملفات السليمة.'
         });
+    }
+});
+
+// مسار البث المباشر (توصيل تدفق البيانات من يوتيوب إلى المتصفح رأساً لمنع تلف الملف)
+app.get('/api/stream-audio', async (req, res) => {
+    try {
+        const videoId = req.query.id;
+        const format = req.query.format || 'mp3';
+
+        if (!videoId) return res.status(400).send('Missing video ID');
+
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        // إعداد الرأسية (Headers) لإجبار المتصفح على تحميل الملف كملف موسيقى حقيقي بدلاً من عرضه
+        res.setHeader('Content-Disposition', `attachment; filename="Audio_${videoId}.${format}"`);
+        res.setHeader('Content-Type', format === 'mp4' ? 'video/mp4' : 'audio/mpeg');
+
+        // سحب الصوت وتمريره للمستخدم مباشرة دون وسيط تالف
+        ytdl(videoUrl, {
+            quality: format === 'mp4' ? 'highestvideo' : 'highestaudio',
+            filter: format === 'mp4' ? 'audioandvideo' : 'audioonly',
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            }
+        }).pipe(res);
+
+    } catch (streamError) {
+        console.error('Streaming endpoint crash protected:', streamError);
+        if (!res.headersSent) {
+            res.status(500).send('Error streaming media file content');
+        }
     }
 });
 
@@ -151,7 +200,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
                         product_data: {
                             name: 'YouTube to MP3 - اشتراك سنوي',
                             description: 'تحميل فوري بدون تأخير + مميزات إضافية',
-                            images: ['data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect fill="%236366f1" width="192" height="192"/><path fill="white" d="M144 64c0-3.528-2.86-6.4-6.4-6.4h-89.2c-3.528 0-6.4 2.872-6.4 6.4v64c0 3.528 2.872 6.4 6.4 6.4h89.2c3.54 0 6.4-2.872 6.4-6.4V64zm-57.6 48l-19.2-12.8v25.6l19.2-12.8z"/></svg>'],
                         },
                         unit_amount: 500, // $5.00
                     },
@@ -159,38 +207,17 @@ app.post('/api/create-checkout-session', async (req, res) => {
                 },
             ],
             mode: 'subscription',
-            subscription_data: {
-                items: [
-                    {
-                        price_data: {
-                            currency: 'usd',
-                            product_data: {
-                                name: 'YouTube to MP3 Premium',
-                            },
-                            recurring: {
-                                interval: 'year',
-                                interval_count: 1,
-                            },
-                            unit_amount: 500, // $5.00 per year
-                        },
-                        quantity: 1,
-                    },
-                ],
-            },
             success_url: `${process.env.DOMAIN || 'http://localhost:3000'}/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.DOMAIN || 'http://localhost:3000'}/cancel`,
         });
 
         res.json({
             sessionId: session.id,
-            clientSecret: session.client_secret,
             url: session.url
         });
     } catch (error) {
         console.error('Checkout session error:', error);
-        res.status(500).json({
-            error: 'فشل إنشاء جلسة الدفع'
-        });
+        res.status(500).json({ error: 'فشل إنشاء جلسة الدفع' });
     }
 });
 
@@ -198,7 +225,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
 app.post('/api/payment-success', (req, res) => {
     try {
         const { provider, timestamp, userEmail } = req.body;
-        
         const paymentId = `payment_${Date.now()}`;
         const paymentData = {
             id: paymentId,
@@ -213,104 +239,34 @@ app.post('/api/payment-success', (req, res) => {
 
         payments.set(paymentId, paymentData);
 
-        console.log(`✅ Payment received via ${provider} at ${timestamp}`);
-        console.log(`💰 Amount: $${paymentData.amount} → ${ADMIN_EMAIL}`);
-        console.log(`👤 User: ${paymentData.userEmail}`);
-
+        console.log(`✅ Payment received via ${provider}`);
         res.json({
             success: true,
             message: 'Payment received successfully',
-            paymentId,
-            adminEmail: ADMIN_EMAIL,
-            amount: '$5.00'
+            paymentId
         });
     } catch (error) {
-        console.error('Payment success error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error processing payment'
-        });
+        res.status(500).json({ success: false, message: 'Error processing payment' });
     }
 });
 
-// 4. Check Subscription Status (آمن تماماً لخادم المتصفح والسيرفر)
+// 4. Check Subscription Status
 app.get('/api/subscription-status/:userId', (req, res) => {
-    try {
-        const { userId } = req.params;
-
-        res.json({
-            isPremium: false,
-            expiryDate: null
-        });
-    } catch (error) {
-        console.error('Subscription check error:', error);
-        res.status(500).json({
-            isPremium: false
-        });
-    }
+    res.json({ isPremium: false, expiryDate: null });
 });
 
 // 5. Get Payment History
 app.get('/api/payment-history', (req, res) => {
-    try {
-        const history = Array.from(payments.values());
-        
-        res.json({
-            success: true,
-            count: history.length,
-            payments: history
-        });
-    } catch (error) {
-        console.error('Payment history error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'خطأ في جلب سجل الدفع'
-        });
-    }
+    res.json({ success: true, payments: Array.from(payments.values()) });
 });
 
 // 6. Health Check
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
-    });
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // ===== Webhook Handler for Stripe =====
 app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    let event;
-
-    try {
-        event = stripe.webhooks.constructEvent(
-            req.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET || 'whsec_demo'
-        );
-    } catch (err) {
-        console.error('Webhook error:', err);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    switch (event.type) {
-        case 'customer.subscription.created':
-            console.log('New subscription created:', event.data.object);
-            break;
-        case 'customer.subscription.deleted':
-            console.log('Subscription cancelled:', event.data.object);
-            break;
-        case 'invoice.payment_succeeded':
-            console.log('Payment succeeded:', event.data.object);
-            break;
-        case 'invoice.payment_failed':
-            console.log('Payment failed:', event.data.object);
-            break;
-        default:
-            console.log(`Unhandled event type: ${event.type}`);
-    }
-
     res.json({ received: true });
 });
 
@@ -319,163 +275,24 @@ app.get('/success', (req, res) => {
     res.send(`
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>نجح الدفع</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-height: 100vh;
-                    margin: 0;
-                    background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
-                }
-                .container {
-                    text-align: center;
-                    background: white;
-                    padding: 40px;
-                    border-radius: 20px;
-                    box-shadow: 0 12px 40px rgba(0,0,0,0.1);
-                }
-                .checkmark {
-                    width: 80px;
-                    height: 80px;
-                    margin: 0 auto 20px;
-                    background: #10b981;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 50px;
-                }
-                h1 { color: #1e293b; margin-bottom: 10px; }
-                p { color: #64748b; margin-bottom: 20px; }
-                a {
-                    display: inline-block;
-                    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                    color: white;
-                    padding: 12px 30px;
-                    border-radius: 10px;
-                    text-decoration: none;
-                    transition: all 0.3s ease;
-                }
-                a:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="checkmark">✓</div>
-                <h1>تم الدفع بنجاح! 🎉</h1>
-                <p>شكراً لاشتراكك في النسخة المتقدمة من YouTube to MP3</p>
-                <p>ستتمكن الآن من تحميل الفيديوهات بسرعة فائقة!</p>
-                <a href="/">العودة إلى التطبيق</a>
-            </div>
+        <head><meta charset="UTF-8"><title>نجح الدفع</title></head>
+        <body style="font-family:Arial;text-align:center;padding-top:100px;background:#f0f4f8;">
+            <h1>تم الدفع بنجاح! 🎉</h1>
+            <p>ستتمكن الآن من تحميل الفيديوهات بسرعة فائقة!</p>
+            <a href="/" style="background:#6366f1;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">العودة للتطبيق</a>
         </body>
         </html>
     `);
 });
 
 app.get('/cancel', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>تم إلغاء الدفع</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-height: 100vh;
-                    margin: 0;
-                    background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
-                }
-                .container {
-                    text-align: center;
-                    background: white;
-                    padding: 40px;
-                    border-radius: 20px;
-                    box-shadow: 0 12px 40px rgba(0,0,0,0.1);
-                }
-                .x {
-                    width: 80px;
-                    height: 80px;
-                    margin: 0 auto 20px;
-                    background: #ef4444;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 50px;
-                }
-                h1 { color: #1e293b; margin-bottom: 10px; }
-                p { color: #64748b; margin-bottom: 20px; }
-                a {
-                    display: inline-block;
-                    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                    color: white;
-                    padding: 12px 30px;
-                    border-radius: 10px;
-                    text-decoration: none;
-                    transition: all 0.3s ease;
-                }
-                a:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="x">✕</div>
-                <h1>تم إلغاء الدفع</h1>
-                <p>لم يتم إتمام عملية الدفع</p>
-                <p>يمكنك محاولة الدفع مرة أخرى أو الاستمرار بالنسخة المجانية</p>
-                <a href="/">العودة إلى التطبيق</a>
-            </div>
-        </body>
-        </html>
-    `);
+    res.send(`<h1>تم إلغاء الدفع</h1><a href="/">العودة للتطبيق</a>`);
 });
 
-// Serve landing.html for root path
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'landing.html'));
-});
-
-// Serve index.html for /app path
-app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Serve index.html for all other routes (SPA support)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Start Server
+// تشغيل السيرفر والاستماع للطلبات
 app.listen(PORT, () => {
-    const domainName = config?.server?.domain || `http://localhost:${PORT}`;
-    console.log(`\n✅ 🚀 Server running successfully`);
-    console.log(`📧 Payment Email Configured: ${ADMIN_EMAIL}`);
-});
-
-// Error Handling
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+    console.log(`\n========================================`);
+    console.log(`🚀 السيرفر يعمل بكفاءة على منفذ: ${PORT}`);
+    console.log(`🌍 الرابط المحلي: http://localhost:${PORT}`);
+    console.log(`========================================\n`);
 });
