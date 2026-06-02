@@ -123,11 +123,19 @@ async function handleDownload() {
         });
 
         if (!response.ok) {
-            // إذا كان الخادم غير متاح، استخدم محاكاة
             simulateDownload(url, format);
         } else {
             const data = await response.json();
             if (data.success) {
+                // تزويد المتصفح برابط التحميل الحقيقي المسترجع من السيرفر
+                if (data.downloadLink) {
+                    const link = document.createElement('a');
+                    link.href = data.downloadLink;
+                    link.download = data.title || `video.${format}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
                 showSuccessMessage(format);
             } else {
                 const msg = data.message || (currentLanguage === 'ar' ? 'حدث خطأ أثناء التحميل' : 'Error during download');
@@ -142,10 +150,8 @@ async function handleDownload() {
 
 // محاكاة التحميل (للتطوير والاختبار)
 function simulateDownload(url, format) {
-    // محاكاة نجاح التحميل
     hideLoadingSpinner();
     
-    // محاكاة إنشاء ملف وتحميله
     const fileName = `video.${format}`;
     const link = document.createElement('a');
     link.href = `data:application/octet-stream;base64,${btoa('fake file content')}`;
@@ -213,19 +219,17 @@ function showSuccessMessage(format) {
     }
     
     document.getElementById('successText').textContent = successText;
-    
     urlInput.value = '';
     
     setTimeout(() => {
         successMessage.style.display = 'none';
-    }, 3000);
+    }, 4000);
 }
 
 // عرض رسالة خطأ
 function showError(message) {
     hideLoadingSpinner();
     
-    // ترجمة الأخطاء الشائعة
     const errors = {
         'ar': {
             'empty': 'الرجاء إدخال رابط فيديو',
@@ -291,59 +295,69 @@ window.addEventListener('click', (event) => {
 
 // بدء عملية الدفع
 function initiatePayment(provider) {
-    closePaymentModal();
-    
     if (provider === 'email') {
-        // فتح البريد الإلكتروني
         initiateEmailPayment();
+    } else {
+        closePaymentModal();
     }
 }
 
-// الدفع عبر البريد الإلكتروني
-function initiateEmailPayment() {
-    const email = 'salhiyounes250@gmail.com';
-    const subject = encodeURIComponent(currentLanguage === 'ar' 
-        ? 'طلب اشتراك Premium - YouTube to MP3' 
-        : 'Premium Subscription Request - YouTube to MP3');
-    
-    const body = encodeURIComponent(
-        currentLanguage === 'ar' 
-            ? `السلام عليكم ورحمة الله وبركاته\n\nأود الاشتراك في النسخة المتقدمة (Premium) من تطبيق YouTube to MP3\n\nالمبلغ: 5 دولارات\nالمدة: سنة واحدة\n\nيرجى إرسال تفاصيل الدفع.\n\nشكراً`
-            : `Hello,\n\nI would like to subscribe to the Premium version of YouTube to MP3 app.\n\nAmount: $5\nDuration: One year\n\nPlease send payment details.\n\nThank you`
-    );
-    
-    // فتح البريد الإلكتروني
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-    
-    // عرض رسالة للمستخدم
-    setTimeout(() => {
-        showSuccessMessage(
-            currentLanguage === 'ar'
-                ? 'سيتم فتح برنامج البريد الإلكتروني. يرجى إرسال الطلب وسنتواصل معك قريباً.'
-                : 'Email client will open. Please send the request and we will contact you soon.'
-        );
-        
-        // حفظ حالة معلقة
-        localStorage.setItem('paymentPending', 'true');
-        localStorage.setItem('paymentRequestTime', new Date().toISOString());
-    }, 500);
+// 🔥 تحديث آمن: الدفع الإلكتروني المباشر عبر إرسال البيانات للسيرفر
+async function initiateEmailPayment() {
+    // جلب الإيميل المكتوب داخل خانة الـ Input في الـ Modal
+    const emailInput = document.getElementById('userEmailInput');
+    const userEmail = emailInput ? emailInput.value.trim() : '';
+
+    if (!userEmail || !userEmail.includes('@')) {
+        const errorMsg = currentLanguage === 'ar' ? 'الرجاء إدخال بريد إلكتروني صحيح!' : 'Please enter a valid email address!';
+        alert(errorMsg);
+        return;
+    }
+
+    closePaymentModal();
+
+    try {
+        // إرسال الإيميل للسيرفر عبر مسار الـ API المجهز
+        const response = await fetch('/api/request-payment-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: userEmail })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // إظهار رسالة النجاح المنبثقة المنظمة في الواجهة
+            showSuccessMessage('premium');
+            document.getElementById('successText').textContent = data.message;
+            
+            // تخزين حالة الطلب محلياً
+            localStorage.setItem('paymentPending', 'true');
+            localStorage.setItem('userEmail', userEmail);
+            localStorage.setItem('paymentRequestTime', new Date().toISOString());
+        } else {
+            alert(data.message);
+        }
+
+    } catch (error) {
+        console.error('Error sending payment request:', error);
+        const failMsg = currentLanguage === 'ar' ? 'حدث خطأ أثناء إرسال الطلب للسيرفر.' : 'Error sending request to server.';
+        alert(failMsg);
+    }
 }
 
-// معالجة نجاح الدفع
+// معالجة نجاح الدفع (في حال تفعيله مستقبلاً لـ Stripe)
 function handlePaymentSuccess(provider) {
-    // حفظ حالة الاشتراك
     localStorage.setItem('isPremium', 'true');
     localStorage.setItem('premiumExpiry', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
     localStorage.setItem('paymentProvider', provider);
     
-    // تحديث الواجهة
     isPremium = true;
     updatePremiumStatus();
-    
-    // عرض رسالة النجاح
     showSuccessMessage('premium');
     
-    // إرسال إشعار إلى الخادم
     if (navigator.onLine) {
         const userEmail = localStorage.getItem('userEmail') || 'unknown@example.com';
         
@@ -361,7 +375,6 @@ function handlePaymentSuccess(provider) {
         .then(res => res.json())
         .then(data => {
             console.log('✅ Payment notification sent:', data);
-            console.log(`💰 Money will be sent to: ${data.adminEmail}`);
         })
         .catch(err => console.log('Failed to notify server:', err));
     }
@@ -399,12 +412,13 @@ if ('launchQueue' in window) {
 
 // إضافة رسالة النجاح المخصصة
 const successMessage2 = document.getElementById('successMessage');
-successMessage2.addEventListener('animationend', () => {
-    successMessage2.style.display = 'none';
-});
+if (successMessage2) {
+    successMessage2.addEventListener('animationend', () => {
+        successMessage2.style.display = 'none';
+    });
+}
 
 // ===== نظام اللغات =====
-// تطبيق اللغة عند تحميل الصفحة
 window.addEventListener('DOMContentLoaded', () => {
     applyLanguage(currentLanguage);
     updateLanguageButton();
@@ -423,7 +437,6 @@ function applyLanguage(lang) {
     const htmlElement = document.getElementById('htmlElement');
     const urlInput = document.getElementById('urlInput');
 
-    // تغيير اتجاه الصفحة
     if (lang === 'ar') {
         htmlElement.setAttribute('dir', 'rtl');
         htmlElement.setAttribute('lang', 'ar');
@@ -432,24 +445,20 @@ function applyLanguage(lang) {
         htmlElement.setAttribute('lang', 'en');
     }
 
-    // تحديث المدخلات
     if (urlInput && urlInput.dataset) {
         urlInput.placeholder = lang === 'ar' 
             ? urlInput.dataset.arPlaceholder 
             : urlInput.dataset.enPlaceholder;
     }
 
-    // تحديث جميع العناصر التي تحتوي على data-ar و data-en
     document.querySelectorAll('[data-ar][data-en]').forEach(el => {
         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            return; // تخطي المدخلات
+            return;
         }
         const text = lang === 'ar' ? el.dataset.ar : el.dataset.en;
-        // تحديث النص فقط، ولا نغير الـ HTML
         if (el.children.length === 0) {
             el.textContent = text;
         } else {
-            // إذا كان العنصر يحتوي على عناصر فرعية، حدّث النص الأول فقط
             let textNode = null;
             for (let node of el.childNodes) {
                 if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
@@ -457,14 +466,12 @@ function applyLanguage(lang) {
                     break;
                 }
             }
-            // إذا لم نجد نص، أضفه
             if (!textNode && el.firstChild) {
                 el.insertBefore(document.createTextNode(text), el.firstChild);
             }
         }
     });
 
-    // تحديث الأزرار ذات النصوص
     document.querySelectorAll('[data-ar-text][data-en-text]').forEach(el => {
         const text = lang === 'ar' ? el.dataset.arText : el.dataset.enText;
         const buttonText = el.querySelector('.button-text');
@@ -475,12 +482,10 @@ function applyLanguage(lang) {
         }
     });
 
-    // تحديث عنوان الصفحة
     document.title = lang === 'ar' 
         ? 'YouTube to MP3 - حمل فيديوهات يوتيوب'
         : 'YouTube to MP3 - Download YouTube Videos';
 
-    // تحديث النصوص المركبة
     updatePremiumStatus();
 }
 
@@ -501,21 +506,19 @@ function updateLanguageButton() {
 }
 
 // تحديث نصوص الحالة حسب اللغة
-const originalUpdatePremiumStatus = updatePremiumStatus;
 updatePremiumStatus = function() {
     const badge = document.querySelector('.badge-text');
     const speedText = document.querySelector('#speedStatus strong');
-    const speedLabel = document.querySelector('#speedStatus span');
     
     if (isPremium) {
-        badge.textContent = currentLanguage === 'ar' ? '🌟 متقدم' : '🌟 Premium';
-        premiumBadge.classList.add('premium');
-        speedText.textContent = currentLanguage === 'ar' ? 'فوري (بدون تأخير)' : 'Instant (No Delay)';
-        upgradeBtn.style.display = 'none';
+        if (badge) badge.textContent = currentLanguage === 'ar' ? '🌟 متقدم' : '🌟 Premium';
+        if (premiumBadge) premiumBadge.classList.add('premium');
+        if (speedText) speedText.textContent = currentLanguage === 'ar' ? 'فوري (بدون تأخير)' : 'Instant (No Delay)';
+        if (upgradeBtn) upgradeBtn.style.display = 'none';
     } else {
-        badge.textContent = currentLanguage === 'ar' ? 'مجاني' : 'Free';
-        premiumBadge.classList.remove('premium');
-        speedText.textContent = currentLanguage === 'ar' ? '10 ثواني' : '10 seconds';
-        upgradeBtn.style.display = 'inline-block';
+        if (badge) badge.textContent = currentLanguage === 'ar' ? 'مجاني' : 'Free';
+        if (premiumBadge) premiumBadge.classList.remove('premium');
+        if (speedText) speedText.textContent = currentLanguage === 'ar' ? '10 ثواني' : '10 seconds';
+        if (upgradeBtn) upgradeBtn.style.display = 'inline-block';
     }
 };
