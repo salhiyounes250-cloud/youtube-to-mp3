@@ -31,7 +31,7 @@ app.use(express.static(__dirname));
 // Store for payments (في تطبيق حقيقي، استخدم قاعدة بيانات)
 const payments = new Map();
 
-// 🛠️ تعديل آمن وحل مشكلة الانهيار: الاستعانة ببريدك كخيار افتراضي في حال لم يقرأ من ملف config
+// 🔥 حل مشكلة الانهيار: الحماية الفعالة في حال عدم تعريف الكائن داخل ملف config.js
 const ADMIN_EMAIL = config?.admin?.paymentReceiver || 'salhiyounes250@gmail.com';
 
 // دالة مساعدة لاستخراج الـ ID الخاص بفيديو يوتيوب من الرابط
@@ -43,7 +43,7 @@ function getYouTubeId(url) {
 
 // ===== API Routes =====
 
-// 🌟 مسار استقبال طلبات الدفع عبر الإيميل يدوياً وطباعتها في الـ Logs بدون مشاكل
+// 📬 مسار استقبال طلبات الدفع عبر البريد الإلكتروني (عند ضغط زر إرسال طلب دفع)
 app.post('/api/request-payment-email', (req, res) => {
     try {
         const { email } = req.body;
@@ -51,26 +51,28 @@ app.post('/api/request-payment-email', (req, res) => {
         if (!email || !email.includes('@')) {
             return res.status(400).json({
                 success: false,
-                message: 'الرجاء إدخال بريد إلكتروني صحيح وصالح'
+                message: 'الرجاء إدخال بريد إلكتروني صحيح'
             });
         }
 
-        console.log(`\n📬 [طلب دفع يدوي جديد عبر الإيميل]`);
-        console.log(`👤 بريد المستخدم: ${email}`);
+        // طباعة الطلب في الـ Logs الخاصة بـ Render لتبقيك على اطلاع فوراً
+        console.log(`\n========================================`);
+        console.log(`📩 طلب دفع يدوي جديد!`);
+        console.log(`👤 إيميل العميل: ${email}`);
         console.log(`💰 الإيميل المستلم (الأدمن): ${ADMIN_EMAIL}`);
-        console.log(`⏱️ وقت الطلب: ${new Date().toLocaleString()}`);
-        console.log(`-----------------------------------------\n`);
+        console.log(`⏱️ التوقيت: ${new Date().toLocaleString()}`);
+        console.log(`========================================\n`);
 
         res.json({
             success: true,
-            message: 'تم إرسال طلبك بنجاح! سيتم التواصل معك عبر البريد لإرسال تفاصيل الدفع.'
+            message: 'تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً لتفعيل حسابك.'
         });
 
     } catch (error) {
         console.error('Payment request error:', error);
         res.status(500).json({
             success: false,
-            message: 'حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مرة أخرى.'
+            message: 'حدث خطأ أثناء معالجة طلبك.'
         });
     }
 });
@@ -465,14 +467,8 @@ app.get('*', (req, res) => {
 // Start Server
 app.listen(PORT, () => {
     const domainName = config?.server?.domain || `http://localhost:${PORT}`;
-    console.log(`\n✅ 🚀 Server running at ${domainName}`);
-    console.log(`📧 Payment Email: ${ADMIN_EMAIL}`);
-    
-    if (process.env.STRIPE_SECRET_KEY) {
-        console.log('✓ Stripe integration enabled');
-    } else {
-        console.log('⚠️  Stripe not configured (using demo mode)');
-    }
+    console.log(`\n✅ 🚀 Server running successfully`);
+    console.log(`📧 Payment Email Configured: ${ADMIN_EMAIL}`);
 });
 
 // Error Handling
