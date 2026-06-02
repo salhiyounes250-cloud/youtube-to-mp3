@@ -7,7 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config.js';
 
-// استيراد مكتبة هجينة قوية وجاهزة للتحميل المباشر وتخطي القيود
+// استيراد مكتبة التحميل المحدثة والمضادة للحظر
 import ytdl from '@distube/ytdl-core';
 
 // Load environment variables
@@ -78,7 +78,7 @@ app.post('/api/request-payment-email', (req, res) => {
     }
 });
 
-// 1. Download endpoint (التحميل الذكي والمستقر بالبث المباشر الموثوق)
+// 1. Download endpoint (معدل بالكامل لتفادي حظر 403 الخاص بالروبوتات)
 app.post('/api/download', async (req, res) => {
     try {
         const { url, format, isPremium } = req.body;
@@ -98,64 +98,60 @@ app.post('/api/download', async (req, res) => {
             });
         }
 
-        // استخدام الـ API الخارجي كحل أساسي مرن وسريع، وفي حال تعذره، يتدفق الكود تلقائياً للـ Streaming
-        const apiUrl = `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`;
-        const options = {
-            method: 'GET',
-            headers: {
-                'x-rapidapi-key': process.env.RAPIDAPI_KEY || '68c7847c2cmsh27a78371306b5adp1b610ajsn313a8ef5b46e',
-                'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com'
-            }
-        };
-
+        // نقوم فوراً بتوجيه المستخدم لرابط البث المباشر الداخلي الخاص بالسيرفر
+        // هذا يحميك من حظر الـ APIs الخارجية ويعالج البيانات عبر ترويسات آمنة
+        const localDownloadLink = `/api/stream-audio?id=${videoId}&format=${format}`;
+        
         try {
-            const apiResponse = await fetch(apiUrl, options);
-            const data = await apiResponse.json();
+            const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            
+            // محاولة جلب معلومات الفيديو مع تمرير ترويسات متصفح كاملة لخداع الحماية
+            const info = await ytdl.getInfo(videoUrl, {
+                requestOptions: {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Cache-Control': 'no-cache'
+                    }
+                }
+            });
+            
+            const title = info.videoDetails.title.replace(/[^\w\s\u0600-\u06FF]/gi, '');
 
-            if (data.status === 'ok' && data.link) {
-                console.log(`[API Success] Video processed via API pipeline.`);
-                return res.json({
-                    success: true,
-                    message: 'تم تجهيز الملف بنجاح!',
-                    downloadLink: data.link, 
-                    title: data.title || `Audio_${videoId}`,
-                    format: format,
-                    premium: isPremium
-                });
-            }
-        } catch (apiErr) {
-            console.log(`[API Proxy Node] External API failed or ratelimited, switching to fallback Stream.`);
+            return res.json({
+                success: true,
+                message: 'تم تجهيز الرابط بنجاح!',
+                downloadLink: localDownloadLink,
+                title: title,
+                format: format,
+                premium: isPremium
+            });
+
+        } catch (ytdlError) {
+            console.log('فشل جلب اسم الفيديو بسبب جدار الحماية، تفعيل خطة التخطي بالاسم الافتراضي...');
+            
+            // Fallback: إذا رفض يوتيوب إعطاء بيانات الاسم، نرسل الرابط بالمعرف الرقمي لكي لا يتعطل التحميل لدى العميل
+            return res.json({
+                success: true,
+                message: 'تم تجهيز الملف للتحميل بنجاح (رابط احتياطي آمن)',
+                downloadLink: localDownloadLink,
+                title: `Audio_${videoId}`,
+                format: format,
+                premium: isPremium
+            });
         }
 
-        // الخط الدفاعي الثاني والـ Fallback المضمون: تحميل الملف عبر الـ Streaming لحل مشكلة الملفات المعطوبة
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        
-        // جلب معلومات الفيديو الأساسية لتمرير الاسم الصحيح للملف
-        const info = await ytdl.getInfo(videoUrl);
-        const title = info.videoDetails.title.replace(/[^\w\s\u0600-\u06FF]/gi, ''); // تنظيف الاسم
-
-        // في نظام الـ Fallback نقوم بإنشاء رابط محلي ديناميكي يشير إلى دالة الـ Stream بالأسفل
-        const localDownloadLink = `/api/stream-audio?id=${videoId}&format=${format}`;
-
-        res.json({
-            success: true,
-            message: 'تم توليد رابط بث مباشر للملف بنجاح!',
-            downloadLink: localDownloadLink,
-            title: title,
-            format: format,
-            premium: isPremium
-        });
-
     } catch (error) {
-        console.error('Download processing core error:', error);
+        console.error('Download Core Error:', error);
         res.status(500).json({
             success: false,
-            message: 'حدث خطأ في معالجة التحميل وتوليد الملفات السليمة.'
+            message: 'حدث خطأ أثناء معالجة طلبك بالخادم.'
         });
     }
 });
 
-// مسار البث المباشر (توصيل تدفق البيانات من يوتيوب إلى المتصفح رأساً لمنع تلف الملف)
+// مسار البث المباشر (Stream) المزود بـ Request Options متقدمة لمحاكاة جهاز حقيقي وتخطي حظر الـ Bot
 app.get('/api/stream-audio', async (req, res) => {
     try {
         const videoId = req.query.id;
@@ -165,25 +161,40 @@ app.get('/api/stream-audio', async (req, res) => {
 
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-        // إعداد الرأسية (Headers) لإجبار المتصفح على تحميل الملف كملف موسيقى حقيقي بدلاً من عرضه
+        // إجبار المتصفح على تحميل الملف مباشرة بدلاً من تشغيله كصفحة كود
         res.setHeader('Content-Disposition', `attachment; filename="Audio_${videoId}.${format}"`);
         res.setHeader('Content-Type', format === 'mp4' ? 'video/mp4' : 'audio/mpeg');
 
-        // سحب الصوت وتمريره للمستخدم مباشرة دون وسيط تالف
-        ytdl(videoUrl, {
+        // إطلاق تيار البيانات مع الترويسات الذكية المضادة لـ 403 Forbidden
+        const stream = ytdl(videoUrl, {
             quality: format === 'mp4' ? 'highestvideo' : 'highestaudio',
             filter: format === 'mp4' ? 'audioandvideo' : 'audioonly',
+            highWaterMark: 1 << 25, // رفع حجم الكاش الداخلي لضمان سرعة نقل الصوت دون تقطيع في Render
             requestOptions: {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': '*/*',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Origin': 'https://www.youtube.com',
+                    'Referer': 'https://www.youtube.com/',
+                    'Sec-Fetch-Mode': 'navigate'
                 }
             }
-        }).pipe(res);
+        });
+
+        stream.on('error', (err) => {
+            console.error('خطأ أثناء بث حزم البيانات الحية:', err.message);
+            if (!res.headersSent) {
+                res.status(500).send('تعذر بث الملف حالياً بسبب قيود الحظر المحدثة من يوتيوب.');
+            }
+        });
+
+        stream.pipe(res);
 
     } catch (streamError) {
-        console.error('Streaming endpoint crash protected:', streamError);
+        console.error('Fatal Stream Route Error:', streamError);
         if (!res.headersSent) {
-            res.status(500).send('Error streaming media file content');
+            res.status(500).send('خطأ غير متوقع في الخادم الخلفي.');
         }
     }
 });
