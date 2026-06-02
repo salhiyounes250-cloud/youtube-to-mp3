@@ -164,16 +164,14 @@ app.post('/api/payment-success', (req, res) => {
     }
 });
 
-// 4. Check Subscription Status
+// 4. Check Subscription Status (تم تعديله هنا ليكون آمناً 100% للسيرفر)
 app.get('/api/subscription-status/:userId', (req, res) => {
     try {
         const { userId } = req.params;
 
-        const isPremium = localStorage?.getItem('isPremium') === 'true';
-
         res.json({
-            isPremium,
-            expiryDate: localStorage?.getItem('premiumExpiry') || null
+            isPremium: false,
+            expiryDate: null
         });
     } catch (error) {
         console.error('Subscription check error:', error);
