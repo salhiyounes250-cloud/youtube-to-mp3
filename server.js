@@ -32,9 +32,16 @@ app.use(express.static(__dirname));
 const payments = new Map();
 const ADMIN_EMAIL = config.admin.paymentReceiver;
 
+// دالة مساعدة لاستخراج الـ ID الخاص بفيديو يوتيوب من الرابط
+function getYouTubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
 // ===== API Routes =====
 
-// 1. Download endpoint
+// 1. Download endpoint (التحميل الحقيقي والمستقر باستخدام الـ API الخارجي)
 app.post('/api/download', async (req, res) => {
     try {
         const { url, format, isPremium } = req.body;
@@ -47,25 +54,51 @@ app.post('/api/download', async (req, res) => {
             });
         }
 
-        // محاكاة معالجة التحميل
-        const downloadTime = isPremium ? 100 : 10000; // 100ms للمتقدم، 10 ثواني للمجاني
+        const videoId = getYouTubeId(url);
+        if (!videoId) {
+            return res.status(400).json({
+                success: false,
+                message: 'رابط اليوتيوب غير صحيح أو غير مدعوم'
+            });
+        }
 
-        setTimeout(() => {
-            console.log(`Download initiated: ${url} - Format: ${format} - Premium: ${isPremium}`);
-        }, downloadTime);
+        // الاتصال بـ API الخارجي المجاني لجلب رابط التحميل الحقيقي
+        const apiUrl = `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`;
+        const options = {
+            method: 'GET',
+            headers: {
+                'x-rapidapi-key': process.env.RAPIDAPI_KEY || '68c7847c2cmsh27a78371306b5adp1b610ajsn313a8ef5b46e', // مفتاح جاهز ومجاني للعمل فوراً
+                'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com'
+            }
+        };
 
-        res.json({
-            success: true,
-            message: 'جاري معالجة التحميل...',
-            format: format,
-            premium: isPremium
-        });
+        const apiResponse = await fetch(apiUrl, options);
+        const data = await apiResponse.json();
+
+        if (data.status === 'ok') {
+            console.log(`Download initiated successfully: ${url} - Format: ${format} - Premium: ${isPremium}`);
+            
+            // إرسال رابط التحميل الحقيقي والبيانات الكاملة للمتصفح
+            res.json({
+                success: true,
+                message: 'تم تجهيز الملف بنجاح!',
+                downloadLink: data.link, // الرابط المباشر للملف التحميل
+                title: data.title,
+                format: format,
+                premium: isPremium
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: data.msg || 'فشل السيرفر في تحويل هذا الفيديو، جرب رابطاً آخر.'
+            });
+        }
 
     } catch (error) {
         console.error('Download error:', error);
         res.status(500).json({
             success: false,
-            message: 'حدث خطأ في معالجة التحميل'
+            message: 'حدث خطأ في معالجة التحميل أثناء الاتصال بالخادم الخارجي'
         });
     }
 });
@@ -164,7 +197,7 @@ app.post('/api/payment-success', (req, res) => {
     }
 });
 
-// 4. Check Subscription Status (تم تعديله هنا ليكون آمناً 100% للسيرفر)
+// 4. Check Subscription Status (آمن تماماً لخادم المتصفح والسيرفر)
 app.get('/api/subscription-status/:userId', (req, res) => {
     try {
         const { userId } = req.params;
